@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    tools {
+        dockerTool 'docker' 
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/piyushbankhede/tic-tac-toe-devsecops.git'
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL . || true'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("piyushbankhede/tic-tac-toe:${BUILD_NUMBER}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withDockerRegistry([credentialsId: 'dockerhub-creds', url: '']) {
+                    dockerImage.push()
+                }
+            }
+        }
+    }
+}
